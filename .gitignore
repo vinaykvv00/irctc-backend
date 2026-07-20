@@ -42,4 +42,4 @@ prisma/dev.db
 .turbo/
 
 # Notification service (pushed to a separate repository)
-notification-service/
+
