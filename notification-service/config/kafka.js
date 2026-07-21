@@ -4,7 +4,7 @@ const { config } = require('.');
 
 const kafka = new Kafka({
     clientId: config.KAFKA_CLIENT_ID,
-    brokers: [config.KAFKA_BROKER || 'localhost:9093'],
+    brokers: [config.KAFKA_BROKER],
     logLevel: logLevel.ERROR,
     retry: {
         initialRetryTime: 300,
@@ -15,7 +15,7 @@ const kafka = new Kafka({
 });
 
 const consumer = kafka.consumer({
-    groupId: 'notification-service-group',
+    groupId: config.KAFKA_GROUP_ID,
     sessionTimeout: 30000,
     heartbeatInterval: 3000,
 })

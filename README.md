@@ -4,16 +4,16 @@ A professional backend service for IRCTC (Indian Railways Catering and Tourism C
 
 ## 📋 Project Overview
 
-This is a microservices-based backend architecture consisting of:
+This is a local microservices backend consisting of:
 
 - **User Service**: Authentication, user management, and OTP verification
-- **Notification Service**: Email and SMS notifications via Kafka (separate repository)
+- **Notification Service**: OTP and welcome emails consumed from Kafka and sent with SendGrid
 - **Infrastructure**: PostgreSQL, Redis, Kafka, Docker Compose
 
 ## 🚀 Features
 
 - JWT-based authentication
-- Email OTP verification
+- Email OTP verification through the notification worker
 - Device fingerprinting for security
 - Redis caching
 - Kafka pub/sub messaging
@@ -49,7 +49,7 @@ docker-compose.yml    # Infrastructure setup
 - **Cache**: Redis
 - **Message Queue**: Apache Kafka
 - **Authentication**: JWT
-- **Email**: Nodemailer
+- **Email**: SendGrid
 
 ## 📦 Prerequisites
 
@@ -66,40 +66,51 @@ git clone https://github.com/YOUR_USERNAME/irctc-backend.git
 cd irctc-backend
 ```
 
-### 2. Install dependencies
+### 2. Start infrastructure first
 
-```bash
-cd user-service
-npm install
-```
+Docker Compose starts PostgreSQL, pgAdmin, Redis, ZooKeeper, Kafka, and Kafka UI. It does not use a root .env file.
 
-### 3. Setup environment variables
-
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
-
-### 4. Start infrastructure (Docker Compose)
-
-```bash
-# From project root
+```powershell
 docker compose up -d
+docker compose ps
 ```
 
-### 5. Setup Prisma database
+Wait until the containers are running before starting either Node.js service.
 
-```bash
-cd user-service
-npx prisma migrate dev
-npx prisma generate
-```
+### 3. Configure and start the user service
 
-### 6. Start the service
-
-```bash
+```powershell
+Set-Location user-service
+npm install
+Copy-Item .env.example .env
+npm run prisma:generate
+npm run prisma:migrate:dev
 npm run dev
 ```
+
+The local service configuration belongs in user-service/.env. Its Kafka broker must be localhost:9093 because the Node.js process runs on the host.
+
+### 4. Configure and start the notification service
+
+Open a second PowerShell terminal at the repository root:
+
+```powershell
+Set-Location notification-service
+npm install
+Copy-Item .env.example .env
+# Set SENDGRID_API_KEY and MAIL_FROM in .env.
+npm run dev
+```
+
+See [notification-service/README.md](notification-service/README.md) for SendGrid and Kafka settings.
+
+### 5. Verify the flow
+
+1. Keep Docker Compose, the user service, and the notification service running.
+2. Call POST /api/v1/auth/send-otp on the user service.
+3. The user service stores the OTP in Redis and publishes a notification.otp-email event.
+4. The notification service consumes the event and sends the email through SendGrid.
+5. After OTP verification, the user service publishes a notification.welcome-email event.
 
 ## 🔧 Configuration
 
@@ -108,40 +119,19 @@ npm run dev
 Create a `.env` file in the `user-service` directory:
 
 ```env
-# Server
-PORT=3000
-NODE_ENV=development
-
-# Database
+# Local infrastructure connections
 DATABASE_URL=postgresql://admin:irctcpass@localhost:5433/postgres
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=irctcpass
-
-# Kafka
-KAFKA_BROKER=localhost:9092
-
-# JWT
-JWT_SECRET=your_jwt_secret_key_here
-
-# Email
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASSWORD=your_app_password
-
-# OTP
-OTP_EXPIRY=300
-OTP_LENGTH=6
+REDIS_URL=redis://:irctcpass@localhost:6379
+KAFKA_BROKER=localhost:9093
 ```
+
+Kafka topic names are centralized in shared/constants/kafka-topics.js. Use user-service/.env.example and notification-service/.env.example as the complete variable lists. No root environment file is required.
 
 ## 🗄️ Database
 
 ### Prisma Commands
 
-```bash
+```powershell
 # Generate Prisma client
 npm run prisma:generate
 
@@ -156,13 +146,13 @@ npm run prisma:studio
 
 ### Development Mode
 
-```bash
+```powershell
 npm run dev
 ```
 
 ### Production Mode
 
-```bash
+```powershell
 npm start
 ```
 
@@ -170,11 +160,10 @@ npm start
 
 ### Authentication
 
-- `POST /api/auth/register` - User registration with email OTP
-- `POST /api/auth/verify-otp` - Verify OTP
-- `POST /api/auth/login` - User login
-- `POST /api/auth/refresh` - Refresh JWT token
-- `POST /api/auth/logout` - User logout
+- `POST /api/v1/auth/send-otp` - Generate and publish the signup OTP
+- `POST /api/v1/auth/verify-otp` - Verify the OTP and create the user
+- `POST /api/v1/auth/login` - User login
+- `GET /api/v1/auth/refresh` - Rotate the refresh token
 
 ## 📊 Infrastructure Services
 
@@ -191,15 +180,15 @@ The `docker-compose.yml` provides:
 
 ## 🐳 Docker Commands
 
-```bash
+```powershell
 # Start all services
 docker compose up -d
 
 # Stop all services
 docker compose down
 
-# View logs
-docker compose logs -f user-service
+# View infrastructure logs
+docker compose logs -f kafka
 
 # Restart a service
 docker compose restart postgres
@@ -207,7 +196,7 @@ docker compose restart postgres
 
 ## 🧪 Testing
 
-```bash
+```powershell
 npm run test
 ```
 

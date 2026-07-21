@@ -7,7 +7,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "prisma:generate": "prisma generate",
-    "prisma:migrate:dev": "node scripts/prisma-migrate-dev.js",
+    "prisma:migrate:dev": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "test": "echo \"No tests configured yet\""
   },
@@ -27,7 +27,7 @@
     "helmet": "^8.0.0",
     "ioredis": "^5.4.2",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^8.0.11",
+    "kafkajs": "^2.2.4",
     "otp-generator": "^4.0.1",
     "pg": "^8.21.0",
     "winston": "^3.17.0"

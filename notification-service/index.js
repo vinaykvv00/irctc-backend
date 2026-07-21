@@ -1,31 +1,23 @@
-require('dotenv').config();
-const emailConsumer = require('./kafka/consumer/email.consumer');
+const { validateConfig } = require('./config');
 const logger = require('./config/logger');
 
 async function startNotificationService() {
     try {
-        logger.info("starting the notification service");
+        logger.info("Starting the notification service");
+        validateConfig();
 
-        const requiredEnvVars = ['SENDGRID_API_KEY', 'KAFKA_BROKER', 'MAIL_SEND'];
-        const missing = requiredEnvVars.filter(varName => !process.env[varName]);
-
-        if (missing.length > 0) {
-            throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
-        }
-
+        const emailConsumer = require('./kafka/consumer/email.consumer');
         await emailConsumer.start();
 
         logger.info("Notification service started successfully");
         logger.info("service is ready to process email notifications");
-    }
-    catch (error) {
+    } catch (error) {
         logger.error('Failed to start Notification Service', {
             error: error.message,
             stack: error.stack
         });
         process.exit(1);
     }
-
 }
 
 process.on('unhandledRejection', (reason, promise) => {

@@ -1,16 +1,31 @@
 {
   "name": "notification-service",
   "version": "1.0.0",
-  "description": "",
+  "description": "Kafka-based email notification worker for the IRCTC backend",
   "main": "index.js",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "node --test"
   },
-  "keywords": [],
+  "keywords": [
+    "kafka",
+    "email",
+    "notifications"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
+    "dotenv": "^17.4.2",
+    "kafkajs": "^2.2.4",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
 }

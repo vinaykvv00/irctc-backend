@@ -1,8 +1,10 @@
 const { consumer, producer, connectProducer } = require('../../config/kafka');
-const emailService = require('../../services/email.service');
+const emailService = require('../../service/email.service');
 const logger = require('../../config/logger');
-const { KAFKA_TOPICS } = require('../../../../shared/constants/kafka-topics');
-const { withDLQ } = require('../../../../shared/utils/dlqHandler');
+const { KAFKA_TOPICS } = require('../../../shared/constants/kafka-topics');
+const { withDLQ } = require('../../../shared/utils/dlqHandler');
+
+const EMAIL_TOPICS = [KAFKA_TOPICS.OTP_EMAIL, KAFKA_TOPICS.WELCOME_EMAIL];
 
 class EmailConsumer {
     async start() {
@@ -12,7 +14,7 @@ class EmailConsumer {
             logger.info('Email consumer connected to Kafka');
 
             await consumer.subscribe({
-                topics: Object.values(KAFKA_TOPICS),
+                topics: EMAIL_TOPICS,
                 fromBeginning: false
             });
 
@@ -66,3 +68,5 @@ class EmailConsumer {
         logger.info(`Welcome email sent to ${email}`);
     }
 }
+
+module.exports = new EmailConsumer();

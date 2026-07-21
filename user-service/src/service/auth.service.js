@@ -7,6 +7,7 @@ const { generateAndStoreOtp, verifyOtp } = require("../utils/otp");
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require("../utils/auth");
 const jwt = require('jsonwebtoken');
 const { getRedisClient } = require("../config/redis");
+const { publishOtpEmail, publishWelcomeEmail } = require("./notification.service");
 
 const sendOTP = async (firstName, lastName, email, password) => {
 	const existingUser = await prisma.user.findUnique({
@@ -21,9 +22,13 @@ const sendOTP = async (firstName, lastName, email, password) => {
 	const meta = { firstName, lastName, email, hashedPassword };
 	const { otp, otpSessionId } = await generateAndStoreOtp(meta);
 	const isDevelopment = config.NODE_ENV !== "production";
+	const ttlMinutes = Math.ceil(config.OTP_TTL / 60);
 
-	// In local/dev mode we keep the flow self-contained and return the OTP for testing.
-	logger.info(`OTP for ${email}: ${otp}`);
+	await publishOtpEmail({ email, otp, ttlMinutes });
+
+	if (isDevelopment) {
+		logger.info(`Development OTP for ${email}: ${otp}`);
+	}
 	logger.info(`OTP stored in Redis for ${email}`);
 
 	return {
@@ -57,6 +62,12 @@ const verifyOTP = async ({ otp, otpSessionId }) => {
 			emailVerified: true
 		}
 	});
+
+	try {
+		await publishWelcomeEmail({ email: user.email, firstName: user.firstName });
+	} catch (error) {
+		logger.error(`Failed to publish welcome email for ${user.email}: ${error.message}`);
+	}
 
 	return user;
 };
